@@ -9,7 +9,6 @@ interface GeneratedKey {
   expiryTimestamp: number;
 }
 
-type View = "landing" | "panel";
 type Duration = "1" | "7" | "30" | "custom";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -514,365 +513,6 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
   );
 }
 
-// ─── Panel View ───────────────────────────────────────────────────────────────
-
-interface PanelViewProps {
-  isAdmin: boolean;
-  onLogout: () => void;
-}
-
-// Feature row component for the iOS-style feature list
-interface FeatureRowProps {
-  label: string;
-  ocid: string;
-  onRemove: () => void;
-}
-
-function FeatureRow({ label, ocid, onRemove }: FeatureRowProps) {
-  return (
-    <div
-      className="flex items-center justify-between px-4 py-3.5"
-      style={{ borderBottom: "1px solid #e8e8ec" }}
-    >
-      <span
-        style={{
-          color: "#1a1a2e",
-          fontFamily: "'Mona Sans', sans-serif",
-          fontWeight: 600,
-          fontSize: "0.9rem",
-          letterSpacing: "0.02em",
-        }}
-      >
-        {label}
-      </span>
-      <button
-        type="button"
-        onClick={onRemove}
-        data-ocid={ocid}
-        aria-label={`Remove ${label}`}
-        className="w-7 h-7 flex items-center justify-center rounded-full transition-all hover:opacity-80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-        style={{
-          background: "#ff3b30",
-          color: "#fff",
-          fontSize: "0.85rem",
-          fontWeight: 700,
-          lineHeight: 1,
-          flexShrink: 0,
-        }}
-      >
-        ✕
-      </button>
-    </div>
-  );
-}
-
-function computeCountdown(isAdmin: boolean): string {
-  if (isAdmin) return "Lifetime Access — No Expiry";
-  const keys = loadKeys();
-  const sessionKey = localStorage.getItem("pubg_session_key");
-  const stored = keys.find((k) => k.key === sessionKey);
-  if (!stored || Date.now() > stored.expiryTimestamp) return "Access granted";
-  const diff = stored.expiryTimestamp - Date.now();
-  const d = Math.floor(diff / 86400000);
-  const h = Math.floor((diff % 86400000) / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-  return `${d}d ${h}h ${m}m ${s}s`;
-}
-
-// Expiry countdown hook
-function useExpiryCountdown(isAdmin: boolean): string {
-  const [countdown, setCountdown] = useState(() => computeCountdown(isAdmin));
-
-  useEffect(() => {
-    setCountdown(computeCountdown(isAdmin));
-    const id = setInterval(() => setCountdown(computeCountdown(isAdmin)), 1000);
-    return () => clearInterval(id);
-  }, [isAdmin]);
-
-  return countdown;
-}
-
-function PanelView({ isAdmin, onLogout }: PanelViewProps) {
-  const [features, setFeatures] = useState([
-    { id: "headtracking", label: "HEADTRACKING" },
-    { id: "aim_assist", label: "AIM ASSIST" },
-    { id: "fps_120", label: "120 FPS" },
-    { id: "smooth", label: "SMOOTH GAMEPLAY" },
-  ]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const countdown = useExpiryCountdown(isAdmin);
-
-  const featureOcidMap: Record<string, string> = {
-    headtracking: "panel.headtracking_toggle",
-    aim_assist: "panel.aim_assist_toggle",
-    fps_120: "panel.fps_toggle",
-    smooth: "panel.smooth_gameplay_toggle",
-  };
-
-  function removeFeature(id: string) {
-    setFeatures((prev) => prev.filter((f) => f.id !== id));
-  }
-
-  return (
-    <motion.div
-      className="w-full"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      {/* iOS-style Panel Card */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "#f0f2f5",
-          boxShadow: "0 4px 32px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.1)",
-        }}
-      >
-        {/* Card Header */}
-        <div className="px-5 pt-5 pb-4" style={{ background: "#f0f2f5" }}>
-          {/* Title row with logout */}
-          <div className="flex items-center justify-between mb-1">
-            <h1
-              data-ocid="panel.title"
-              style={{
-                color: "#1a73e8",
-                fontFamily: "'Mona Sans', sans-serif",
-                fontWeight: 800,
-                fontSize: "1.35rem",
-                letterSpacing: "0.03em",
-                lineHeight: 1.2,
-              }}
-            >
-              GOD IOS PANEL
-            </h1>
-            <button
-              type="button"
-              onClick={onLogout}
-              data-ocid="panel.logout_button"
-              className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-              style={{
-                background: "rgba(26,115,232,0.1)",
-                color: "#1a73e8",
-                border: "1px solid rgba(26,115,232,0.25)",
-              }}
-            >
-              LOGOUT
-            </button>
-          </div>
-
-          {/* Expiry countdown */}
-          <p
-            data-ocid="panel.expiry_status"
-            className="text-sm font-medium"
-            style={{ color: "#555" }}
-          >
-            ⏳{" "}
-            {isAdmin ? (
-              <span style={{ color: "#1a73e8", fontWeight: 700 }}>
-                Lifetime Access — No Expiry
-              </span>
-            ) : (
-              <span>
-                Expiry in{" "}
-                <span style={{ color: "#1a73e8", fontWeight: 700 }}>
-                  {countdown}
-                </span>
-              </span>
-            )}
-          </p>
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: "1px", background: "#dde0e8" }} />
-
-        {/* Feature List */}
-        <div
-          className="mx-4 my-3 rounded-xl overflow-hidden"
-          style={{
-            background: "#fff",
-            boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
-          }}
-        >
-          <AnimatePresence>
-            {features.map((feature, idx) => (
-              <motion.div
-                key={feature.id}
-                initial={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                transition={{ duration: 0.22 }}
-                style={
-                  idx === features.length - 1 ? { borderBottom: "none" } : {}
-                }
-              >
-                <FeatureRow
-                  label={feature.label}
-                  ocid={
-                    featureOcidMap[feature.id] ?? `panel.${feature.id}_toggle`
-                  }
-                  onRemove={() => removeFeature(feature.id)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {features.length === 0 && (
-            <div
-              className="py-6 text-center"
-              style={{ color: "#aaa", fontSize: "0.85rem" }}
-            >
-              All features removed
-            </div>
-          )}
-        </div>
-
-        {/* Select File (pak) */}
-        <div className="px-4 pb-3">
-          <p
-            className="text-center text-sm font-semibold mb-2"
-            style={{ color: "#1a1a2e" }}
-          >
-            Select File (pak)
-          </p>
-          <div
-            className="flex items-center justify-center rounded-lg px-4 py-2.5"
-            style={{
-              background: "#fff",
-              border: "1px solid #dde0e8",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-            }}
-          >
-            <input
-              type="file"
-              accept=".pak"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-              data-ocid="panel.file_input"
-              className="text-sm w-full"
-              style={{ color: "#444", cursor: "pointer" }}
-            />
-          </div>
-          {selectedFile && (
-            <p
-              className="text-xs text-center mt-1"
-              style={{ color: "#1a73e8" }}
-            >
-              {selectedFile.name}
-            </p>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="px-4 pb-5 space-y-2.5">
-          {/* APPLY FILE */}
-          <button
-            type="button"
-            onClick={() => alert("File applied!")}
-            data-ocid="panel.apply_file_button"
-            className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
-            style={{
-              background: "linear-gradient(90deg, #34c759 0%, #1a73e8 100%)",
-              color: "#fff",
-              borderRadius: "50px",
-              letterSpacing: "0.12em",
-              boxShadow: "0 3px 14px rgba(52,199,89,0.35)",
-            }}
-          >
-            APPLY FILE
-          </button>
-
-          {/* ADD BGMI SHORTCUT */}
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "shortcuts://run-shortcut?name=GOD_BGMI";
-            }}
-            data-ocid="panel.add_bgmi_shortcut_button"
-            className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
-            style={{
-              background: "linear-gradient(90deg, #ff375f 0%, #bf5af2 100%)",
-              color: "#fff",
-              borderRadius: "50px",
-              letterSpacing: "0.12em",
-              boxShadow: "0 3px 14px rgba(255,55,95,0.35)",
-            }}
-          >
-            ADD BGMI SHORTCUT
-          </button>
-
-          {/* ADD PUBG SHORTCUT */}
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "shortcuts://run-shortcut?name=GOD_PUBG";
-            }}
-            data-ocid="panel.add_pubg_shortcut_button"
-            className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-            style={{
-              background: "linear-gradient(90deg, #ff2d55 0%, #ff6b9d 100%)",
-              color: "#fff",
-              borderRadius: "50px",
-              letterSpacing: "0.12em",
-              boxShadow: "0 3px 14px rgba(255,45,85,0.35)",
-            }}
-          >
-            ADD PUBG SHORTCUT
-          </button>
-
-          {/* OPEN BGMI */}
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "bgmi://";
-            }}
-            data-ocid="panel.open_bgmi_button"
-            className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-            style={{
-              background: "#0a84ff",
-              color: "#fff",
-              borderRadius: "50px",
-              letterSpacing: "0.12em",
-              boxShadow: "0 3px 14px rgba(10,132,255,0.35)",
-            }}
-          >
-            OPEN BGMI
-          </button>
-
-          {/* OPEN PUBG */}
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "pubg://";
-            }}
-            data-ocid="panel.open_pubg_button"
-            className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-            style={{
-              background: "#1a73e8",
-              color: "#fff",
-              borderRadius: "50px",
-              letterSpacing: "0.12em",
-              boxShadow: "0 3px 14px rgba(26,115,232,0.35)",
-            }}
-          >
-            OPEN PUBG
-          </button>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <p className="text-center text-xs text-white/20 mt-6 tracking-wide">
-        © {new Date().getFullYear()}.{" "}
-        <a
-          href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-          className="hover:text-white/40 transition-colors"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Built with ❤ using caffeine.ai
-        </a>
-      </p>
-    </motion.div>
-  );
-}
-
 // ─── Landing View ─────────────────────────────────────────────────────────────
 
 interface LandingViewProps {
@@ -1105,29 +745,18 @@ function LandingView({ onUnlock, onAdminClick }: LandingViewProps) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
+const SECOND_PAGE_URL = "https://yeasty-ivory-psbl9qdff1.edgeone.app";
+
 export default function App() {
-  const [view, setView] = useState<View>("landing");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
-  const SECOND_PAGE_URL = "https://yeasty-ivory-psbl9qdff1.edgeone.app";
-
-  function handleUnlock(adminFlag: boolean) {
-    setIsAdmin(adminFlag);
+  function handleUnlock(_adminFlag: boolean) {
     window.open(SECOND_PAGE_URL, "_blank", "noopener,noreferrer");
-    setView("panel");
   }
 
   function handleAdminModalSuccess() {
     setShowAdminModal(false);
-    setIsAdmin(true);
     window.open(SECOND_PAGE_URL, "_blank", "noopener,noreferrer");
-    setView("panel");
-  }
-
-  function handleLogout() {
-    setView("landing");
-    setIsAdmin(false);
   }
 
   return (
@@ -1159,28 +788,10 @@ export default function App() {
 
       {/* Main Content */}
       <div className="w-full max-w-sm relative z-10">
-        <AnimatePresence mode="wait">
-          {view === "landing" ? (
-            <motion.div
-              key="landing"
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.25 }}
-            >
-              <LandingView
-                onUnlock={handleUnlock}
-                onAdminClick={() => setShowAdminModal(true)}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="panel"
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.25 }}
-            >
-              <PanelView isAdmin={isAdmin} onLogout={handleLogout} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <LandingView
+          onUnlock={handleUnlock}
+          onAdminClick={() => setShowAdminModal(true)}
+        />
       </div>
 
       {/* Admin Modal */}
