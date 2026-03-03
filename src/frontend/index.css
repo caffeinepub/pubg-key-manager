@@ -1,0 +1,273 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Mona Sans";
+  src: url("/assets/fonts/MonaSans[wdth,wght].woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque[opsz,wdth,wght].woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/assets/fonts/GeistMono[wght].woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* PUBG Dark Gaming Theme */
+    --background: 0.09 0.008 260;
+    --foreground: 0.95 0.01 80;
+
+    --card: 0.12 0.01 260;
+    --card-foreground: 0.95 0.01 80;
+
+    --popover: 0.14 0.012 260;
+    --popover-foreground: 0.95 0.01 80;
+
+    /* Neon Orange Primary */
+    --primary: 0.72 0.22 48;
+    --primary-foreground: 0.09 0.008 260;
+
+    /* Dark Secondary */
+    --secondary: 0.18 0.015 260;
+    --secondary-foreground: 0.85 0.02 80;
+
+    --muted: 0.16 0.012 260;
+    --muted-foreground: 0.55 0.03 260;
+
+    /* Neon Green Accent */
+    --accent: 0.82 0.22 150;
+    --accent-foreground: 0.09 0.008 260;
+
+    --destructive: 0.6 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+
+    --border: 0.25 0.02 260;
+    --input: 0.18 0.015 260;
+    --ring: 0.72 0.22 48;
+
+    --chart-1: 0.72 0.22 48;
+    --chart-2: 0.82 0.22 150;
+    --chart-3: 0.6 0.18 200;
+    --chart-4: 0.7 0.2 280;
+    --chart-5: 0.65 0.2 30;
+
+    --sidebar: 0.11 0.009 260;
+    --sidebar-foreground: 0.95 0.01 80;
+    --sidebar-primary: 0.72 0.22 48;
+    --sidebar-primary-foreground: 0.09 0.008 260;
+    --sidebar-accent: 0.18 0.015 260;
+    --sidebar-accent-foreground: 0.85 0.02 80;
+    --sidebar-border: 0.25 0.02 260;
+    --sidebar-ring: 0.72 0.22 48;
+
+    /* Custom glow colors */
+    --neon-orange: oklch(0.72 0.22 48);
+    --neon-green: oklch(0.82 0.22 150);
+    --neon-red: oklch(0.6 0.22 25);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Mona Sans", sans-serif;
+    background-color: #0a0a0f;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.4), 0 0 40px rgba(255, 106, 0, 0.2);
+  }
+
+  .glow-orange-sm {
+    box-shadow: 0 0 12px rgba(255, 106, 0, 0.35);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), 0 0 40px rgba(0, 255, 136, 0.2);
+  }
+
+  .glow-green-sm {
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px rgba(255, 50, 50, 0.4);
+  }
+
+  .text-gradient-pubg {
+    background: linear-gradient(135deg, #ff6a00 0%, #ffcc00 50%, #ff6a00 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .card-gaming {
+    background: linear-gradient(145deg, #111118 0%, #0e0e16 100%);
+    border: 1px solid rgba(255, 106, 0, 0.2);
+  }
+
+  .card-gaming:hover {
+    border-color: rgba(255, 106, 0, 0.35);
+  }
+
+  .btn-orange {
+    background: linear-gradient(135deg, #ff6a00 0%, #ff9500 100%);
+    color: #000;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+  }
+
+  .btn-orange:hover {
+    background: linear-gradient(135deg, #ff7a20 0%, #ffaa20 100%);
+    box-shadow: 0 0 30px rgba(255, 106, 0, 0.6), 0 0 60px rgba(255, 106, 0, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-orange:active {
+    transform: translateY(0px);
+  }
+
+  .btn-green {
+    background: linear-gradient(135deg, #00c96a 0%, #00ff88 100%);
+    color: #000;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+  }
+
+  .btn-green:hover {
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-green:active {
+    transform: translateY(0px);
+  }
+
+  .input-gaming {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 106, 0, 0.25);
+    color: #f0f0f0;
+    transition: all 0.2s ease;
+  }
+
+  .input-gaming:focus {
+    outline: none;
+    border-color: rgba(255, 106, 0, 0.7);
+    box-shadow: 0 0 0 2px rgba(255, 106, 0, 0.15), 0 0 16px rgba(255, 106, 0, 0.2);
+    background: rgba(255, 106, 0, 0.04);
+  }
+
+  .input-gaming::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .duration-pill {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+
+  .duration-pill:hover {
+    border-color: rgba(255, 106, 0, 0.4);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .duration-pill-active {
+    background: rgba(255, 106, 0, 0.18);
+    border: 1px solid rgba(255, 106, 0, 0.6);
+    color: #ff6a00;
+    box-shadow: 0 0 10px rgba(255, 106, 0, 0.25);
+  }
+
+  .key-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.15s ease;
+  }
+
+  .key-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .key-row-expired {
+    opacity: 0.4;
+  }
+
+  .overlay-bg {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+  }
+
+  .noise-bg {
+    position: relative;
+  }
+
+  .noise-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 106, 0, 0.4);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 106, 0, 0.7);
+}
