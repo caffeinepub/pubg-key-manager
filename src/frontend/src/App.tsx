@@ -1,13 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { KeyRecord, backendInterface } from "./backend.d";
+import { useActor } from "./hooks/useActor";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface GeneratedKey {
-  key: string;
-  durationDays: number;
-  expiryTimestamp: number;
-}
 
 type Duration = "1" | "7" | "30" | "custom";
 type AppView = "landing" | "panel";
@@ -15,64 +11,31 @@ type AppView = "landing" | "panel";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ADMIN_KEY = "rohan2006";
-const LS_KEYS_KEY = "pubg_generated_keys";
+
+// ─── Device Fingerprint ───────────────────────────────────────────────────────
+
+function getDeviceId(): string {
+  const stored = localStorage.getItem("pubg_device_id");
+  if (stored) return stored;
+
+  const raw = [
+    navigator.userAgent,
+    `${screen.width}x${screen.height}x${screen.colorDepth}`,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  ].join("|");
+
+  // Simple djb2 hash
+  let hash = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) + hash) ^ raw.charCodeAt(i);
+    hash = hash >>> 0; // keep as uint32
+  }
+  const id = `dev_${hash.toString(16).padStart(8, "0")}`;
+  localStorage.setItem("pubg_device_id", id);
+  return id;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function loadKeys(): GeneratedKey[] {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEYS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveKeys(keys: GeneratedKey[]) {
-  localStorage.setItem(LS_KEYS_KEY, JSON.stringify(keys));
-}
-
-function validateKey(input: string): {
-  valid: boolean;
-  message: string;
-  isAdmin: boolean;
-  expiryTimestamp: number | null;
-} {
-  const trimmed = input.trim();
-  if (trimmed === ADMIN_KEY) {
-    return {
-      valid: true,
-      message: "✅ Owner key — Lifetime Access",
-      isAdmin: true,
-      expiryTimestamp: null,
-    };
-  }
-  const stored = loadKeys();
-  const match = stored.find((k) => k.key === trimmed);
-  if (!match)
-    return {
-      valid: false,
-      message: "❌ Invalid key",
-      isAdmin: false,
-      expiryTimestamp: null,
-    };
-  if (Date.now() > match.expiryTimestamp)
-    return {
-      valid: false,
-      message: "❌ Key expired",
-      isAdmin: false,
-      expiryTimestamp: null,
-    };
-  return {
-    valid: true,
-    message: "✅ Access granted",
-    isAdmin: false,
-    expiryTimestamp: match.expiryTimestamp,
-  };
-}
-
-function generateRandomKey(): string {
-  return Math.floor(Math.random() * 9000000000 + 1000000000).toString();
-}
 
 function formatExpiry(ts: number): string {
   const d = new Date(ts);
@@ -164,27 +127,95 @@ function CrosshairIcon() {
   );
 }
 
+// ─── Spinner ──────────────────────────────────────────────────────────────────
+
+function Spinner({
+  size = 16,
+  color = "#ff6a00",
+}: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className="animate-spin"
+      role="img"
+      aria-label="Loading"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeOpacity="0.2"
+      />
+      <path
+        d="M12 2 A10 10 0 0 1 22 12"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 // ─── Admin Modal ──────────────────────────────────────────────────────────────
 
 interface AdminModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  actor: backendInterface | null;
 }
 
-function AdminModal({ onClose, onSuccess }: AdminModalProps) {
+function AdminModal({ onClose, onSuccess, actor }: AdminModalProps) {
   const [keyInput, setKeyInput] = useState("");
   const [error, setError] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [keys, setKeys] = useState<GeneratedKey[]>(loadKeys);
+  const [keys, setKeys] = useState<KeyRecord[]>([]);
+  const [loadingKeys, setLoadingKeys] = useState(false);
   const [duration, setDuration] = useState<Duration>("7");
   const [customDays, setCustomDays] = useState("3");
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
+
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!loggedIn) setTimeout(() => inputRef.current?.focus(), 80);
   }, [loggedIn]);
+
+  const fetchKeys = useCallback(async () => {
+    if (!actor) return;
+    setLoadingKeys(true);
+    try {
+      const result = await actor.getKeys(ADMIN_KEY);
+      setKeys(result);
+    } catch (err) {
+      console.error("Failed to fetch keys:", err);
+    } finally {
+      setLoadingKeys(false);
+    }
+  }, [actor]);
+
+  // Fetch keys on login + auto-refresh every 30s
+  useEffect(() => {
+    if (!loggedIn) return;
+
+    fetchKeys();
+
+    refreshIntervalRef.current = setInterval(fetchKeys, 30_000);
+    return () => {
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
+  }, [loggedIn, fetchKeys]);
 
   function handleLogin() {
     if (keyInput.trim() === ADMIN_KEY) {
@@ -196,7 +227,8 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
     }
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
+    if (!actor) return;
     const days =
       duration === "1"
         ? 1
@@ -206,29 +238,44 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
             ? 30
             : Math.max(1, Number.parseInt(customDays) || 1);
 
-    const newKey: GeneratedKey = {
-      key: generateRandomKey(),
-      durationDays: days,
-      expiryTimestamp: Date.now() + days * 86400000,
-    };
-
-    const updated = [newKey, ...keys];
-    setKeys(updated);
-    saveKeys(updated);
-    setLastGenerated(newKey.key);
+    setGenerating(true);
+    try {
+      const newKey = await actor.generateKey(ADMIN_KEY, BigInt(days));
+      setLastGenerated(newKey);
+      await fetchKeys();
+    } catch (err) {
+      console.error("Failed to generate key:", err);
+    } finally {
+      setGenerating(false);
+    }
   }
 
-  function handleClearAll() {
-    setKeys([]);
-    saveKeys([]);
-    setLastGenerated(null);
+  async function handleClearAll() {
+    if (!actor) return;
+    setClearingAll(true);
+    try {
+      await actor.clearAllKeys(ADMIN_KEY);
+      setKeys([]);
+      setLastGenerated(null);
+    } catch (err) {
+      console.error("Failed to clear keys:", err);
+    } finally {
+      setClearingAll(false);
+    }
   }
 
-  function handleRemoveKey(keyValue: string) {
-    const updated = keys.filter((k) => k.key !== keyValue);
-    setKeys(updated);
-    saveKeys(updated);
-    if (lastGenerated === keyValue) setLastGenerated(null);
+  async function handleRemoveKey(keyValue: string) {
+    if (!actor) return;
+    setDeletingKey(keyValue);
+    try {
+      await actor.deleteKey(ADMIN_KEY, keyValue);
+      setKeys((prev) => prev.filter((k) => k.keyValue !== keyValue));
+      if (lastGenerated === keyValue) setLastGenerated(null);
+    } catch (err) {
+      console.error("Failed to delete key:", err);
+    } finally {
+      setDeletingKey(null);
+    }
   }
 
   const durations: { value: Duration; label: string; ocid: string }[] = [
@@ -408,11 +455,19 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
             <button
               type="button"
               onClick={handleGenerate}
-              className="w-full py-3 rounded-lg btn-green text-sm"
+              disabled={generating}
+              className="w-full py-3 rounded-lg btn-green text-sm flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ boxShadow: "0 0 20px rgba(0,255,136,0.3)" }}
               data-ocid="keygen.generate_button"
             >
-              ⚡ GENERATE KEY
+              {generating ? (
+                <>
+                  <Spinner size={15} color="#00ff88" />
+                  <span>GENERATING...</span>
+                </>
+              ) : (
+                "⚡ GENERATE KEY"
+              )}
             </button>
 
             {/* Last generated display */}
@@ -447,15 +502,23 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
             {/* Keys List */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-white/40 tracking-wider uppercase font-medium">
-                  Generated Keys
-                </p>
-                <span
-                  className="text-xs font-mono"
+                <p
+                  className="text-xs font-black tracking-widest uppercase"
                   style={{ color: "#ff6a00" }}
                 >
-                  {keys.length} key{keys.length !== 1 ? "s" : ""}
-                </span>
+                  🗄 KEY STORAGE
+                </p>
+                <div className="flex items-center gap-2">
+                  {loadingKeys && (
+                    <Spinner size={13} color="rgba(255,255,255,0.4)" />
+                  )}
+                  <span
+                    className="text-xs font-mono"
+                    style={{ color: "rgba(255,255,255,0.35)" }}
+                  >
+                    {keys.length} saved
+                  </span>
+                </div>
               </div>
 
               <div
@@ -463,7 +526,19 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
                 style={{ border: "1px solid rgba(255,255,255,0.07)" }}
                 data-ocid="keygen.keys_list"
               >
-                {keys.length === 0 ? (
+                {loadingKeys && keys.length === 0 ? (
+                  <div
+                    className="py-8 text-center"
+                    data-ocid="keygen.loading_state"
+                  >
+                    <div className="flex justify-center mb-2">
+                      <Spinner size={20} color="rgba(255,106,0,0.6)" />
+                    </div>
+                    <p className="text-white/25 text-sm tracking-wider">
+                      Loading keys...
+                    </p>
+                  </div>
+                ) : keys.length === 0 ? (
                   <div
                     className="py-8 text-center"
                     data-ocid="keygen.empty_state"
@@ -475,10 +550,10 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
                 ) : (
                   <>
                     <div
-                      className="grid px-4 py-2.5 text-xs font-bold tracking-widest uppercase"
+                      className="grid px-3 py-2.5 text-xs font-bold tracking-widest uppercase"
                       style={{
-                        gridTemplateColumns: "1fr auto auto auto",
-                        gap: "0.5rem",
+                        gridTemplateColumns: "1fr auto auto auto auto auto",
+                        gap: "0.4rem",
                         background: "rgba(255,255,255,0.04)",
                         color: "rgba(255,255,255,0.35)",
                         borderBottom: "1px solid rgba(255,255,255,0.07)",
@@ -487,59 +562,115 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
                       <span>Key</span>
                       <span className="text-center">Days</span>
                       <span className="text-center">Expires</span>
+                      <span className="text-center">Device</span>
+                      <span />
                       <span />
                     </div>
                     <div className="max-h-52 overflow-y-auto">
                       {keys.map((k, idx) => {
-                        const expired = Date.now() > k.expiryTimestamp;
+                        const expTs = Number(k.expiryTimestamp);
+                        const expired = Date.now() > expTs;
+                        const isBound =
+                          k.boundDeviceId !== undefined &&
+                          k.boundDeviceId !== null &&
+                          k.boundDeviceId !== "";
+                        const isDeleting = deletingKey === k.keyValue;
                         return (
                           <div
-                            key={k.key}
-                            className={`grid items-center px-4 py-3 key-row ${expired ? "key-row-expired" : ""}`}
+                            key={k.keyValue}
+                            className={`grid items-center px-3 py-3 key-row ${expired ? "key-row-expired" : ""}`}
                             style={{
-                              gridTemplateColumns: "1fr auto auto auto",
-                              gap: "0.5rem",
+                              gridTemplateColumns:
+                                "1fr auto auto auto auto auto",
+                              gap: "0.4rem",
+                              opacity: isDeleting ? 0.5 : 1,
+                              transition: "opacity 0.2s ease",
                             }}
                             data-ocid={`keygen.key_item.${idx + 1}`}
                           >
                             <span
-                              className={`font-mono text-xs font-bold tracking-wider ${expired ? "line-through" : ""}`}
+                              className={`font-mono text-xs font-bold tracking-wider truncate ${expired ? "line-through" : ""}`}
                               style={{
                                 color: expired
                                   ? "rgba(255,255,255,0.3)"
                                   : "#ff6a00",
                               }}
                             >
-                              {k.key}
+                              {k.keyValue}
                             </span>
-                            <span className="text-center text-xs text-white/50">
-                              {k.durationDays}d
+                            <span className="text-center text-xs text-white/50 shrink-0">
+                              {Number(k.durationDays)}d
                             </span>
                             <span
-                              className="text-center text-xs font-mono"
+                              className="text-center text-xs font-mono shrink-0"
                               style={{
                                 color: expired
                                   ? "rgba(255,50,50,0.6)"
                                   : "rgba(255,255,255,0.45)",
                               }}
                             >
-                              {expired
-                                ? "Expired"
-                                : formatExpiry(k.expiryTimestamp)}
+                              {expired ? "Expired" : formatExpiry(expTs)}
+                            </span>
+                            {/* Device badge */}
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide shrink-0"
+                              style={
+                                isBound
+                                  ? {
+                                      background: "rgba(255,150,0,0.15)",
+                                      border: "1px solid rgba(255,150,0,0.4)",
+                                      color: "#ffaa00",
+                                    }
+                                  : {
+                                      background: "rgba(0,255,136,0.1)",
+                                      border: "1px solid rgba(0,255,136,0.3)",
+                                      color: "#00ff88",
+                                    }
+                              }
+                              data-ocid={`keygen.device_badge.${idx + 1}`}
+                              title={
+                                isBound
+                                  ? `Bound to: ${k.boundDeviceId}`
+                                  : "Not yet bound to a device"
+                              }
+                            >
+                              {isBound ? "🔒" : "🔓"}
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleRemoveKey(k.key)}
-                              className="w-6 h-6 flex items-center justify-center rounded text-xs font-black transition-all hover:scale-110 active:scale-95"
+                              onClick={() =>
+                                navigator.clipboard?.writeText(k.keyValue)
+                              }
+                              disabled={isDeleting}
+                              className="w-6 h-6 flex items-center justify-center rounded text-xs font-black transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
+                              style={{
+                                background: "rgba(0,170,255,0.1)",
+                                border: "1px solid rgba(0,170,255,0.3)",
+                                color: "#00aaff",
+                              }}
+                              aria-label={`Copy key ${k.keyValue}`}
+                              data-ocid={`keygen.key_copy_button.${idx + 1}`}
+                            >
+                              ⧉
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveKey(k.keyValue)}
+                              disabled={isDeleting}
+                              className="w-6 h-6 flex items-center justify-center rounded text-xs font-black transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
                               style={{
                                 background: "rgba(255,50,50,0.12)",
                                 border: "1px solid rgba(255,50,50,0.35)",
                                 color: "#ff4444",
                               }}
-                              aria-label={`Remove key ${k.key}`}
+                              aria-label={`Remove key ${k.keyValue}`}
                               data-ocid={`keygen.key_delete_button.${idx + 1}`}
                             >
-                              ✕
+                              {isDeleting ? (
+                                <Spinner size={10} color="#ff4444" />
+                              ) : (
+                                "✕"
+                              )}
                             </button>
                           </div>
                         );
@@ -555,7 +686,8 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="w-full py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:opacity-80"
+                disabled={clearingAll}
+                className="w-full py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:opacity-80 disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{
                   background: "rgba(255,50,50,0.08)",
                   border: "1px solid rgba(255,50,50,0.25)",
@@ -563,7 +695,14 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
                 }}
                 data-ocid="keygen.clear_button"
               >
-                🗑 CLEAR ALL KEYS
+                {clearingAll ? (
+                  <>
+                    <Spinner size={12} color="#ff4444" />
+                    <span>CLEARING...</span>
+                  </>
+                ) : (
+                  "🗑 CLEAR ALL KEYS"
+                )}
               </button>
             )}
           </motion.div>
@@ -578,25 +717,51 @@ function AdminModal({ onClose, onSuccess }: AdminModalProps) {
 interface LandingViewProps {
   onUnlock: (isAdmin: boolean, expiryTimestamp: number | null) => void;
   onAdminClick: () => void;
+  actor: backendInterface | null;
 }
 
-function LandingView({ onUnlock, onAdminClick }: LandingViewProps) {
+function LandingView({ onUnlock, onAdminClick, actor }: LandingViewProps) {
   const [keyInput, setKeyInput] = useState("");
   const [status, setStatus] = useState<{
     message: string;
     valid: boolean;
   } | null>(null);
+  const [validating, setValidating] = useState(false);
 
-  function handleUnlock() {
-    if (!keyInput.trim()) {
+  async function handleUnlock() {
+    const trimmed = keyInput.trim();
+    if (!trimmed) {
       setStatus({ message: "⚠ Please enter your key", valid: false });
       return;
     }
-    const result = validateKey(keyInput);
-    setStatus({ message: result.message, valid: result.valid });
-    if (result.valid) {
-      localStorage.setItem("pubg_session_key", keyInput.trim());
-      setTimeout(() => onUnlock(result.isAdmin, result.expiryTimestamp), 600);
+
+    if (!actor) {
+      setStatus({ message: "⚠ Connecting to server...", valid: false });
+      return;
+    }
+
+    setValidating(true);
+    setStatus(null);
+
+    try {
+      const deviceId = getDeviceId();
+      const result = await actor.validateAndBindKey(trimmed, deviceId);
+
+      setStatus({ message: result.message, valid: result.valid });
+
+      if (result.valid) {
+        localStorage.setItem("pubg_session_key", trimmed);
+        const expiry =
+          result.expiryTimestamp !== undefined
+            ? Number(result.expiryTimestamp)
+            : null;
+        setTimeout(() => onUnlock(result.isAdmin, expiry), 600);
+      }
+    } catch (err) {
+      console.error("Validation error:", err);
+      setStatus({ message: "❌ Connection error, try again", valid: false });
+    } finally {
+      setValidating(false);
     }
   }
 
@@ -727,11 +892,14 @@ function LandingView({ onUnlock, onAdminClick }: LandingViewProps) {
               setKeyInput(e.target.value);
               setStatus(null);
             }}
-            onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+            onKeyDown={(e) =>
+              !validating && e.key === "Enter" && handleUnlock()
+            }
             placeholder="Enter your key..."
             className="w-full px-4 py-3.5 rounded-xl font-mono text-base input-gaming"
             autoComplete="off"
             spellCheck={false}
+            disabled={validating}
             data-ocid="landing.key_input"
           />
 
@@ -756,14 +924,22 @@ function LandingView({ onUnlock, onAdminClick }: LandingViewProps) {
           <button
             type="button"
             onClick={handleUnlock}
-            className="w-full py-4 rounded-xl btn-orange"
+            disabled={validating}
+            className="w-full py-4 rounded-xl btn-orange flex items-center justify-center gap-2 disabled:opacity-70"
             style={{
               boxShadow:
                 "0 0 25px rgba(255,106,0,0.4), 0 0 50px rgba(255,106,0,0.2)",
             }}
             data-ocid="landing.unlock_button"
           >
-            🔓 UNLOCK PANEL
+            {validating ? (
+              <>
+                <Spinner size={17} color="#000" />
+                <span>VALIDATING...</span>
+              </>
+            ) : (
+              "🔓 UNLOCK PANEL"
+            )}
           </button>
         </div>
       </div>
@@ -826,7 +1002,6 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
   const [features, setFeatures] = useState<Feature[]>(INITIAL_FEATURES);
   const [countdown, setCountdown] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Live countdown timer
   useEffect(() => {
@@ -1060,19 +1235,8 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
             Config File
           </p>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pak,.zip,.obb"
-            onChange={handleFileChange}
-            className="hidden"
-            data-ocid="panel.file_input"
-          />
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full py-3 rounded-xl text-sm font-bold tracking-wider uppercase transition-all hover:opacity-80"
+          <label
+            className="block w-full py-3 rounded-xl text-sm font-bold tracking-wider uppercase text-center cursor-pointer transition-all hover:opacity-80"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.12)",
@@ -1089,7 +1253,14 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
                 {selectedFile.name}
               </span>
             )}
-          </button>
+            <input
+              type="file"
+              accept=".pak,.zip,.obb"
+              onChange={handleFileChange}
+              className="hidden"
+              data-ocid="panel.file_input"
+            />
+          </label>
         </div>
 
         {/* Divider */}
@@ -1153,7 +1324,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
 
           {/* OPEN BGMI */}
           <a
-            href="shortcuts://run-shortcut?name=ABC_BGMI"
+            href="shortcuts://run-shortcut?name=GOD_IOS_BGMI"
             className="block w-full py-3 rounded-xl text-sm font-bold tracking-widest uppercase text-center transition-all hover:opacity-80 active:scale-[0.98]"
             style={{
               background: "rgba(0,200,255,0.08)",
@@ -1167,7 +1338,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
 
           {/* OPEN PUBG */}
           <a
-            href="shortcuts://run-shortcut?name=ABC_PUBG"
+            href="shortcuts://run-shortcut?name=GOD_IOS_PUBG"
             className="block w-full py-3 rounded-xl text-sm font-bold tracking-widest uppercase text-center transition-all hover:opacity-80 active:scale-[0.98]"
             style={{
               background: "rgba(255,106,0,0.08)",
@@ -1200,6 +1371,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { actor } = useActor();
   const [view, setView] = useState<AppView>("landing");
   const [isAdmin, setIsAdmin] = useState(false);
   const [expiryTimestamp, setExpiryTimestamp] = useState<number | null>(null);
@@ -1260,6 +1432,7 @@ export default function App() {
               <LandingView
                 onUnlock={handleUnlock}
                 onAdminClick={() => setShowAdminModal(true)}
+                actor={actor}
               />
             </motion.div>
           ) : (
@@ -1280,6 +1453,7 @@ export default function App() {
           <AdminModal
             onClose={() => setShowAdminModal(false)}
             onSuccess={handleAdminModalSuccess}
+            actor={actor}
           />
         )}
       </AnimatePresence>

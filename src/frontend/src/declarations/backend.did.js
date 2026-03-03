@@ -8,10 +8,56 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const idlService = IDL.Service({});
+export const KeyRecord = IDL.Record({
+  'durationDays' : IDL.Nat,
+  'expiryTimestamp' : IDL.Int,
+  'createdAt' : IDL.Int,
+  'keyValue' : IDL.Text,
+  'boundDeviceId' : IDL.Opt(IDL.Text),
+});
+export const ValidationResult = IDL.Record({
+  'expiryTimestamp' : IDL.Opt(IDL.Int),
+  'valid' : IDL.Bool,
+  'message' : IDL.Text,
+  'isAdmin' : IDL.Bool,
+});
+
+export const idlService = IDL.Service({
+  'clearAllKeys' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'deleteKey' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+  'generateKey' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
+  'getKeys' : IDL.Func([IDL.Text], [IDL.Vec(KeyRecord)], []),
+  'validateAndBindKey' : IDL.Func([IDL.Text, IDL.Text], [ValidationResult], []),
+});
 
 export const idlInitArgs = [];
 
-export const idlFactory = ({ IDL }) => { return IDL.Service({}); };
+export const idlFactory = ({ IDL }) => {
+  const KeyRecord = IDL.Record({
+    'durationDays' : IDL.Nat,
+    'expiryTimestamp' : IDL.Int,
+    'createdAt' : IDL.Int,
+    'keyValue' : IDL.Text,
+    'boundDeviceId' : IDL.Opt(IDL.Text),
+  });
+  const ValidationResult = IDL.Record({
+    'expiryTimestamp' : IDL.Opt(IDL.Int),
+    'valid' : IDL.Bool,
+    'message' : IDL.Text,
+    'isAdmin' : IDL.Bool,
+  });
+  
+  return IDL.Service({
+    'clearAllKeys' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'deleteKey' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+    'generateKey' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
+    'getKeys' : IDL.Func([IDL.Text], [IDL.Vec(KeyRecord)], []),
+    'validateAndBindKey' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [ValidationResult],
+        [],
+      ),
+  });
+};
 
 export const init = ({ IDL }) => { return []; };

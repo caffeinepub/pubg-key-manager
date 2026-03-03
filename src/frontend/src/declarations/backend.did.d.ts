@@ -10,7 +10,26 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface _SERVICE {}
+export interface KeyRecord {
+  'durationDays' : bigint,
+  'expiryTimestamp' : bigint,
+  'createdAt' : bigint,
+  'keyValue' : string,
+  'boundDeviceId' : [] | [string],
+}
+export interface ValidationResult {
+  'expiryTimestamp' : [] | [bigint],
+  'valid' : boolean,
+  'message' : string,
+  'isAdmin' : boolean,
+}
+export interface _SERVICE {
+  'clearAllKeys' : ActorMethod<[string], boolean>,
+  'deleteKey' : ActorMethod<[string, string], boolean>,
+  'generateKey' : ActorMethod<[string, bigint], string>,
+  'getKeys' : ActorMethod<[string], Array<KeyRecord>>,
+  'validateAndBindKey' : ActorMethod<[string, string], ValidationResult>,
+}
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
 export declare const idlFactory: IDL.InterfaceFactory;

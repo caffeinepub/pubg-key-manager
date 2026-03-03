@@ -89,10 +89,153 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface backendInterface {
+export interface KeyRecord {
+    durationDays: bigint;
+    expiryTimestamp: bigint;
+    createdAt: bigint;
+    keyValue: string;
+    boundDeviceId?: string;
 }
+export interface ValidationResult {
+    expiryTimestamp?: bigint;
+    valid: boolean;
+    message: string;
+    isAdmin: boolean;
+}
+export interface backendInterface {
+    clearAllKeys(adminKey: string): Promise<boolean>;
+    deleteKey(adminKey: string, keyValue: string): Promise<boolean>;
+    generateKey(adminKey: string, durationDays: bigint): Promise<string>;
+    getKeys(adminKey: string): Promise<Array<KeyRecord>>;
+    validateAndBindKey(keyValue: string, deviceId: string): Promise<ValidationResult>;
+}
+import type { KeyRecord as _KeyRecord, ValidationResult as _ValidationResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async clearAllKeys(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.clearAllKeys(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.clearAllKeys(arg0);
+            return result;
+        }
+    }
+    async deleteKey(arg0: string, arg1: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteKey(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteKey(arg0, arg1);
+            return result;
+        }
+    }
+    async generateKey(arg0: string, arg1: bigint): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.generateKey(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.generateKey(arg0, arg1);
+            return result;
+        }
+    }
+    async getKeys(arg0: string): Promise<Array<KeyRecord>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getKeys(arg0);
+                return from_candid_vec_n1(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getKeys(arg0);
+            return from_candid_vec_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async validateAndBindKey(arg0: string, arg1: string): Promise<ValidationResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.validateAndBindKey(arg0, arg1);
+                return from_candid_ValidationResult_n5(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.validateAndBindKey(arg0, arg1);
+            return from_candid_ValidationResult_n5(this._uploadFile, this._downloadFile, result);
+        }
+    }
+}
+function from_candid_KeyRecord_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _KeyRecord): KeyRecord {
+    return from_candid_record_n3(_uploadFile, _downloadFile, value);
+}
+function from_candid_ValidationResult_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ValidationResult): ValidationResult {
+    return from_candid_record_n6(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    durationDays: bigint;
+    expiryTimestamp: bigint;
+    createdAt: bigint;
+    keyValue: string;
+    boundDeviceId: [] | [string];
+}): {
+    durationDays: bigint;
+    expiryTimestamp: bigint;
+    createdAt: bigint;
+    keyValue: string;
+    boundDeviceId?: string;
+} {
+    return {
+        durationDays: value.durationDays,
+        expiryTimestamp: value.expiryTimestamp,
+        createdAt: value.createdAt,
+        keyValue: value.keyValue,
+        boundDeviceId: record_opt_to_undefined(from_candid_opt_n4(_uploadFile, _downloadFile, value.boundDeviceId))
+    };
+}
+function from_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    expiryTimestamp: [] | [bigint];
+    valid: boolean;
+    message: string;
+    isAdmin: boolean;
+}): {
+    expiryTimestamp?: bigint;
+    valid: boolean;
+    message: string;
+    isAdmin: boolean;
+} {
+    return {
+        expiryTimestamp: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.expiryTimestamp)),
+        valid: value.valid,
+        message: value.message,
+        isAdmin: value.isAdmin
+    };
+}
+function from_candid_vec_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_KeyRecord>): Array<KeyRecord> {
+    return value.map((x)=>from_candid_KeyRecord_n2(_uploadFile, _downloadFile, x));
 }
 export interface CreateActorOptions {
     agent?: Agent;
