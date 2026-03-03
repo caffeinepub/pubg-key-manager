@@ -142,121 +142,28 @@ interface AdminModalProps {
 function AdminModal({ onClose, onSuccess }: AdminModalProps) {
   const [keyInput, setKeyInput] = useState("");
   const [error, setError] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Key generator state (shown after login)
+  const [keys, setKeys] = useState<GeneratedKey[]>(loadKeys);
+  const [duration, setDuration] = useState<Duration>("7");
+  const [customDays, setCustomDays] = useState("3");
+  const [lastGenerated, setLastGenerated] = useState<string | null>(null);
+
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 80);
-  }, []);
+    if (!loggedIn) setTimeout(() => inputRef.current?.focus(), 80);
+  }, [loggedIn]);
 
   function handleLogin() {
     if (keyInput.trim() === ADMIN_KEY) {
-      onSuccess();
+      setLoggedIn(true);
     } else {
       setError("❌ Invalid admin key");
       setKeyInput("");
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overlay-bg"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      data-ocid="admin.modal"
-    >
-      <motion.div
-        className="relative w-full max-w-sm card-gaming rounded-xl p-6 noise-bg"
-        style={{
-          boxShadow:
-            "0 0 60px rgba(255,106,0,0.2), 0 20px 60px rgba(0,0,0,0.8)",
-        }}
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 300, damping: 28 }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <CrosshairIcon />
-            <span
-              className="font-display font-bold text-lg tracking-widest"
-              style={{ color: "#ff6a00" }}
-            >
-              ADMIN LOGIN
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white/80 hover:bg-white/8 transition-all"
-            data-ocid="admin.close_button"
-            aria-label="Close modal"
-          >
-            ✕
-          </button>
-        </div>
-
-        <p className="text-white/40 text-sm mb-4 tracking-wide">
-          Enter the admin key to access the control panel.
-        </p>
-
-        <div className="space-y-3">
-          <input
-            ref={inputRef}
-            type="password"
-            value={keyInput}
-            onChange={(e) => {
-              setKeyInput(e.target.value);
-              setError("");
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            placeholder="Admin key"
-            className="w-full px-4 py-3 rounded-lg font-mono text-sm input-gaming"
-            autoComplete="off"
-            spellCheck={false}
-            data-ocid="admin.key_input"
-          />
-
-          <AnimatePresence>
-            {error && (
-              <motion.p
-                className="text-sm font-medium px-1"
-                style={{ color: "#ff4444" }}
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-              >
-                {error}
-              </motion.p>
-            )}
-          </AnimatePresence>
-
-          <button
-            type="button"
-            onClick={handleLogin}
-            className="w-full py-3 rounded-lg btn-orange text-sm font-bold tracking-widest"
-            style={{ boxShadow: "0 0 20px rgba(255,106,0,0.35)" }}
-            data-ocid="admin.login_button"
-          >
-            LOGIN
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ─── Admin Panel ──────────────────────────────────────────────────────────────
-
-function AdminPanel() {
-  const [keys, setKeys] = useState<GeneratedKey[]>(loadKeys);
-  const [duration, setDuration] = useState<Duration>("7");
-  const [customDays, setCustomDays] = useState("3");
-  const [lastGenerated, setLastGenerated] = useState<string | null>(null);
 
   function handleGenerate() {
     const days =
@@ -295,216 +202,314 @@ function AdminPanel() {
 
   return (
     <motion.div
-      className="mt-6 rounded-xl p-5 space-y-5"
-      style={{
-        background: "linear-gradient(145deg, #0d0d14 0%, #0a0a10 100%)",
-        border: "1px solid rgba(0,255,136,0.2)",
-        boxShadow: "0 0 30px rgba(0,255,136,0.08)",
-      }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto overlay-bg"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      data-ocid="admin.modal"
     >
-      {/* Section Header */}
-      <div className="flex items-center gap-2">
-        <div
-          className="w-1 h-6 rounded-full"
-          style={{ background: "linear-gradient(to bottom, #00ff88, #00c96a)" }}
-        />
-        <span
-          className="font-display font-bold text-base tracking-[0.2em]"
-          style={{
-            color: "#00ff88",
-            textShadow: "0 0 12px rgba(0,255,136,0.5)",
-          }}
-        >
-          KEY GENERATOR
-        </span>
-      </div>
+      <motion.div
+        className="relative w-full max-w-sm card-gaming rounded-xl p-6 noise-bg my-8"
+        style={{
+          boxShadow:
+            "0 0 60px rgba(255,106,0,0.2), 0 20px 60px rgba(0,0,0,0.8)",
+        }}
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ type: "spring", stiffness: 300, damping: 28 }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <CrosshairIcon />
+            <span
+              className="font-display font-bold text-lg tracking-widest"
+              style={{ color: "#ff6a00" }}
+            >
+              {loggedIn ? "KEY GENERATOR" : "ADMIN LOGIN"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white/80 hover:bg-white/8 transition-all"
+            data-ocid="admin.close_button"
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
+        </div>
 
-      {/* Duration Pills */}
-      <div className="space-y-2">
-        <p className="text-xs text-white/40 tracking-wider uppercase font-medium">
-          Select Duration
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          {durations.map(({ value, label, ocid }) => (
+        {/* ── Login form (before login) ── */}
+        {!loggedIn && (
+          <>
+            <p className="text-white/40 text-sm mb-4 tracking-wide">
+              Enter the admin key to access the key generator.
+            </p>
+
+            <div className="space-y-3">
+              <input
+                ref={inputRef}
+                type="password"
+                value={keyInput}
+                onChange={(e) => {
+                  setKeyInput(e.target.value);
+                  setError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                placeholder="Admin key"
+                className="w-full px-4 py-3 rounded-lg font-mono text-sm input-gaming"
+                autoComplete="off"
+                spellCheck={false}
+                data-ocid="admin.key_input"
+              />
+
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    className="text-sm font-medium px-1"
+                    style={{ color: "#ff4444" }}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="button"
+                onClick={handleLogin}
+                className="w-full py-3 rounded-lg btn-orange text-sm font-bold tracking-widest"
+                style={{ boxShadow: "0 0 20px rgba(255,106,0,0.35)" }}
+                data-ocid="admin.login_button"
+              >
+                LOGIN
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── Key Generator (after login) ── */}
+        {loggedIn && (
+          <motion.div
+            className="space-y-5"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {/* Also unlock the panel */}
             <button
               type="button"
-              key={value}
-              onClick={() => setDuration(value)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold tracking-wider ${
-                duration === value ? "duration-pill-active" : "duration-pill"
-              }`}
-              data-ocid={ocid}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <AnimatePresence>
-          {duration === "custom" && (
-            <motion.div
-              className="flex items-center gap-3 pt-1"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <input
-                type="number"
-                min="1"
-                max="365"
-                value={customDays}
-                onChange={(e) => setCustomDays(e.target.value)}
-                className="w-28 px-4 py-2 rounded-lg font-mono text-sm input-gaming"
-                placeholder="Days"
-                data-ocid="keygen.custom_days_input"
-              />
-              <span className="text-white/40 text-sm">days</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Generate Button */}
-      <button
-        type="button"
-        onClick={handleGenerate}
-        className="w-full py-3 rounded-lg btn-green text-sm"
-        style={{ boxShadow: "0 0 20px rgba(0,255,136,0.3)" }}
-        data-ocid="keygen.generate_button"
-      >
-        ⚡ GENERATE KEY
-      </button>
-
-      {/* Last generated display */}
-      <AnimatePresence>
-        {lastGenerated && (
-          <motion.div
-            className="flex items-center gap-3 px-4 py-3 rounded-lg"
-            style={{
-              background: "rgba(0,255,136,0.06)",
-              border: "1px solid rgba(0,255,136,0.2)",
-            }}
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <span className="text-xs text-white/40 uppercase tracking-wider shrink-0">
-              New key:
-            </span>
-            <span
-              className="font-mono font-bold text-base tracking-widest"
-              style={{
-                color: "#00ff88",
-                textShadow: "0 0 8px rgba(0,255,136,0.4)",
+              onClick={() => {
+                onSuccess();
               }}
+              className="w-full py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:opacity-80"
+              style={{
+                background: "rgba(255,106,0,0.12)",
+                border: "1px solid rgba(255,106,0,0.3)",
+                color: "#ff6a00",
+              }}
+              data-ocid="admin.open_panel_button"
             >
-              {lastGenerated}
-            </span>
+              ► OPEN ADMIN PANEL
+            </button>
+
+            {/* Duration Pills */}
+            <div className="space-y-2">
+              <p className="text-xs text-white/40 tracking-wider uppercase font-medium">
+                Select Duration
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {durations.map(({ value, label, ocid }) => (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => setDuration(value)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold tracking-wider ${
+                      duration === value
+                        ? "duration-pill-active"
+                        : "duration-pill"
+                    }`}
+                    data-ocid={ocid}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <AnimatePresence>
+                {duration === "custom" && (
+                  <motion.div
+                    className="flex items-center gap-3 pt-1"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={customDays}
+                      onChange={(e) => setCustomDays(e.target.value)}
+                      className="w-28 px-4 py-2 rounded-lg font-mono text-sm input-gaming"
+                      placeholder="Days"
+                      data-ocid="keygen.custom_days_input"
+                    />
+                    <span className="text-white/40 text-sm">days</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Generate Button */}
+            <button
+              type="button"
+              onClick={handleGenerate}
+              className="w-full py-3 rounded-lg btn-green text-sm"
+              style={{ boxShadow: "0 0 20px rgba(0,255,136,0.3)" }}
+              data-ocid="keygen.generate_button"
+            >
+              ⚡ GENERATE KEY
+            </button>
+
+            {/* Last generated display */}
+            <AnimatePresence>
+              {lastGenerated && (
+                <motion.div
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                  style={{
+                    background: "rgba(0,255,136,0.06)",
+                    border: "1px solid rgba(0,255,136,0.2)",
+                  }}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <span className="text-xs text-white/40 uppercase tracking-wider shrink-0">
+                    New key:
+                  </span>
+                  <span
+                    className="font-mono font-bold text-base tracking-widest"
+                    style={{
+                      color: "#00ff88",
+                      textShadow: "0 0 8px rgba(0,255,136,0.4)",
+                    }}
+                  >
+                    {lastGenerated}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Keys List */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-white/40 tracking-wider uppercase font-medium">
+                  Generated Keys
+                </p>
+                <span
+                  className="text-xs font-mono"
+                  style={{ color: "#ff6a00" }}
+                >
+                  {keys.length} key{keys.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+                data-ocid="keygen.keys_list"
+              >
+                {keys.length === 0 ? (
+                  <div
+                    className="py-8 text-center"
+                    data-ocid="keygen.empty_state"
+                  >
+                    <p className="text-white/25 text-sm tracking-wider">
+                      No keys generated yet
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      className="grid grid-cols-3 px-4 py-2.5 text-xs font-bold tracking-widest uppercase"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        color: "rgba(255,255,255,0.35)",
+                        borderBottom: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <span>Key</span>
+                      <span className="text-center">Days</span>
+                      <span className="text-right">Expires</span>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                      {keys.map((k, idx) => {
+                        const expired = Date.now() > k.expiryTimestamp;
+                        return (
+                          <div
+                            key={k.key}
+                            className={`grid grid-cols-3 px-4 py-3 key-row ${expired ? "key-row-expired" : ""}`}
+                            data-ocid={`keygen.key_item.${idx + 1}`}
+                          >
+                            <span
+                              className={`font-mono text-xs font-bold tracking-wider ${expired ? "line-through" : ""}`}
+                              style={{
+                                color: expired
+                                  ? "rgba(255,255,255,0.3)"
+                                  : "#ff6a00",
+                              }}
+                            >
+                              {k.key}
+                            </span>
+                            <span className="text-center text-xs text-white/50">
+                              {k.durationDays}d
+                            </span>
+                            <span
+                              className="text-right text-xs font-mono"
+                              style={{
+                                color: expired
+                                  ? "rgba(255,50,50,0.6)"
+                                  : "rgba(255,255,255,0.45)",
+                              }}
+                            >
+                              {expired
+                                ? "Expired"
+                                : formatExpiry(k.expiryTimestamp)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Clear All */}
+            {keys.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="w-full py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:opacity-80"
+                style={{
+                  background: "rgba(255,50,50,0.08)",
+                  border: "1px solid rgba(255,50,50,0.25)",
+                  color: "#ff4444",
+                }}
+                data-ocid="keygen.clear_button"
+              >
+                🗑 CLEAR ALL KEYS
+              </button>
+            )}
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* Keys List */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-white/40 tracking-wider uppercase font-medium">
-            Generated Keys
-          </p>
-          <span className="text-xs font-mono" style={{ color: "#ff6a00" }}>
-            {keys.length} key{keys.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(255,255,255,0.07)" }}
-          data-ocid="keygen.keys_list"
-        >
-          {keys.length === 0 ? (
-            <div className="py-10 text-center" data-ocid="keygen.empty_state">
-              <p className="text-white/25 text-sm tracking-wider">
-                No keys generated yet
-              </p>
-              <p className="text-white/15 text-xs mt-1">
-                Generate a key above to get started
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Table Header */}
-              <div
-                className="grid grid-cols-3 px-4 py-2.5 text-xs font-bold tracking-widest uppercase"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  color: "rgba(255,255,255,0.35)",
-                  borderBottom: "1px solid rgba(255,255,255,0.07)",
-                }}
-              >
-                <span>Key</span>
-                <span className="text-center">Duration</span>
-                <span className="text-right">Expires</span>
-              </div>
-
-              {/* Table Rows */}
-              <div className="max-h-64 overflow-y-auto">
-                {keys.map((k, idx) => {
-                  const expired = Date.now() > k.expiryTimestamp;
-                  return (
-                    <div
-                      key={k.key}
-                      className={`grid grid-cols-3 px-4 py-3 key-row ${expired ? "key-row-expired" : ""}`}
-                      data-ocid={`keygen.key_item.${idx + 1}`}
-                    >
-                      <span
-                        className={`font-mono text-xs font-bold tracking-wider ${expired ? "line-through" : ""}`}
-                        style={{
-                          color: expired ? "rgba(255,255,255,0.3)" : "#ff6a00",
-                        }}
-                      >
-                        {k.key}
-                      </span>
-                      <span className="text-center text-xs text-white/50">
-                        {k.durationDays}d
-                      </span>
-                      <span
-                        className="text-right text-xs font-mono"
-                        style={{
-                          color: expired
-                            ? "rgba(255,50,50,0.6)"
-                            : "rgba(255,255,255,0.45)",
-                        }}
-                      >
-                        {expired ? "Expired" : formatExpiry(k.expiryTimestamp)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Clear All Button */}
-      {keys.length > 0 && (
-        <button
-          type="button"
-          onClick={handleClearAll}
-          className="w-full py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-          style={{
-            background: "rgba(255,50,50,0.08)",
-            border: "1px solid rgba(255,50,50,0.25)",
-            color: "#ff4444",
-          }}
-          data-ocid="keygen.clear_button"
-        >
-          🗑 CLEAR ALL KEYS
-        </button>
-      )}
+      </motion.div>
     </motion.div>
   );
 }
@@ -561,47 +566,27 @@ function FeatureRow({ label, ocid, onRemove }: FeatureRowProps) {
   );
 }
 
+function computeCountdown(isAdmin: boolean): string {
+  if (isAdmin) return "Lifetime Access — No Expiry";
+  const keys = loadKeys();
+  const sessionKey = localStorage.getItem("pubg_session_key");
+  const stored = keys.find((k) => k.key === sessionKey);
+  if (!stored || Date.now() > stored.expiryTimestamp) return "Access granted";
+  const diff = stored.expiryTimestamp - Date.now();
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${d}d ${h}h ${m}m ${s}s`;
+}
+
 // Expiry countdown hook
 function useExpiryCountdown(isAdmin: boolean): string {
-  const [countdown, setCountdown] = useState(() => {
-    if (isAdmin) return "Lifetime Access — No Expiry";
-    const keys = loadKeys();
-    const stored = keys.find(
-      (k) =>
-        k.expiryTimestamp > Date.now() &&
-        localStorage.getItem("pubg_session_key") === k.key,
-    );
-    if (!stored) return "Access granted";
-    const diff = stored.expiryTimestamp - Date.now();
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    return `${d}d ${h}h ${m}m`;
-  });
+  const [countdown, setCountdown] = useState(() => computeCountdown(isAdmin));
 
   useEffect(() => {
-    if (isAdmin) {
-      setCountdown("Lifetime Access — No Expiry");
-      return;
-    }
-
-    function tick() {
-      const keys = loadKeys();
-      const sessionKey = localStorage.getItem("pubg_session_key");
-      const stored = keys.find((k) => k.key === sessionKey);
-      if (!stored || Date.now() > stored.expiryTimestamp) {
-        setCountdown("Access granted");
-        return;
-      }
-      const diff = stored.expiryTimestamp - Date.now();
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      setCountdown(`${d}d ${h}h ${m}m`);
-    }
-
-    tick();
-    const id = setInterval(tick, 60000);
+    setCountdown(computeCountdown(isAdmin));
+    const id = setInterval(() => setCountdown(computeCountdown(isAdmin)), 1000);
     return () => clearInterval(id);
   }, [isAdmin]);
 
@@ -659,7 +644,7 @@ function PanelView({ isAdmin, onLogout }: PanelViewProps) {
                 lineHeight: 1.2,
               }}
             >
-              ABC iOS PANEL
+              GOD IOS PANEL
             </h1>
             <button
               type="button"
@@ -798,7 +783,7 @@ function PanelView({ isAdmin, onLogout }: PanelViewProps) {
           <button
             type="button"
             onClick={() => {
-              window.location.href = "shortcuts://run-shortcut?name=ABC_BGMI";
+              window.location.href = "shortcuts://run-shortcut?name=GOD_BGMI";
             }}
             data-ocid="panel.add_bgmi_shortcut_button"
             className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
@@ -817,7 +802,7 @@ function PanelView({ isAdmin, onLogout }: PanelViewProps) {
           <button
             type="button"
             onClick={() => {
-              window.location.href = "shortcuts://run-shortcut?name=ABC_PUBG";
+              window.location.href = "shortcuts://run-shortcut?name=GOD_PUBG";
             }}
             data-ocid="panel.add_pubg_shortcut_button"
             className="w-full py-3.5 font-bold text-sm tracking-widest transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
@@ -872,9 +857,6 @@ function PanelView({ isAdmin, onLogout }: PanelViewProps) {
         </div>
       </div>
 
-      {/* Admin Panel Section */}
-      {isAdmin && <AdminPanel />}
-
       {/* Footer */}
       <p className="text-center text-xs text-white/20 mt-6 tracking-wide">
         © {new Date().getFullYear()}.{" "}
@@ -913,6 +895,8 @@ function LandingView({ onUnlock, onAdminClick }: LandingViewProps) {
     const result = validateKey(keyInput);
     setStatus({ message: result.message, valid: result.valid });
     if (result.valid) {
+      // Save session key so the expiry countdown can look it up
+      localStorage.setItem("pubg_session_key", keyInput.trim());
       setTimeout(() => onUnlock(result.isAdmin), 600);
     }
   }
@@ -1012,7 +996,7 @@ function LandingView({ onUnlock, onAdminClick }: LandingViewProps) {
               backgroundClip: "text",
             }}
           >
-            PUBG KEY PANEL
+            PUBG IOS CONFIG PANEL
           </h1>
 
           <p className="text-white/35 text-sm tracking-[0.12em] font-medium">
@@ -1126,14 +1110,18 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
+  const SECOND_PAGE_URL = "https://yeasty-ivory-psbl9qdff1.edgeone.app";
+
   function handleUnlock(adminFlag: boolean) {
     setIsAdmin(adminFlag);
+    window.open(SECOND_PAGE_URL, "_blank", "noopener,noreferrer");
     setView("panel");
   }
 
   function handleAdminModalSuccess() {
     setShowAdminModal(false);
     setIsAdmin(true);
+    window.open(SECOND_PAGE_URL, "_blank", "noopener,noreferrer");
     setView("panel");
   }
 
