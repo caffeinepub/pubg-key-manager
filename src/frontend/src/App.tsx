@@ -181,6 +181,7 @@ function AdminModal({ onClose, onSuccess, actor }: AdminModalProps) {
   const [customDays, setCustomDays] = useState("3");
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
 
@@ -228,7 +229,13 @@ function AdminModal({ onClose, onSuccess, actor }: AdminModalProps) {
   }
 
   async function handleGenerate() {
-    if (!actor) return;
+    setGenerateError(null);
+
+    if (!actor) {
+      setGenerateError("⚠ Connecting to server, please wait...");
+      return;
+    }
+
     const days =
       duration === "1"
         ? 1
@@ -241,10 +248,17 @@ function AdminModal({ onClose, onSuccess, actor }: AdminModalProps) {
     setGenerating(true);
     try {
       const newKey = await actor.generateKey(ADMIN_KEY, BigInt(days));
+      if (typeof newKey === "string" && newKey.startsWith("ERROR:")) {
+        const msg = newKey.replace("ERROR:", "").trim();
+        setGenerateError(`❌ ${msg || "Failed to generate key"}`);
+        return;
+      }
       setLastGenerated(newKey);
+      setGenerateError(null);
       await fetchKeys();
     } catch (err) {
       console.error("Failed to generate key:", err);
+      setGenerateError("❌ Network error, please try again");
     } finally {
       setGenerating(false);
     }
@@ -469,6 +483,22 @@ function AdminModal({ onClose, onSuccess, actor }: AdminModalProps) {
                 "⚡ GENERATE KEY"
               )}
             </button>
+
+            {/* Generate error display */}
+            <AnimatePresence>
+              {generateError && (
+                <motion.p
+                  className="text-sm font-medium px-1"
+                  style={{ color: "#ff4444" }}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  data-ocid="keygen.error_state"
+                >
+                  {generateError}
+                </motion.p>
+              )}
+            </AnimatePresence>
 
             {/* Last generated display */}
             <AnimatePresence>
@@ -1002,7 +1032,6 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
   const [features, setFeatures] = useState<Feature[]>(INITIAL_FEATURES);
   const [countdown, setCountdown] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
   // Live countdown timer
   useEffect(() => {
     if (isAdmin || expiryTimestamp === null) {
@@ -1235,32 +1264,33 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
             Config File
           </p>
 
-          <label
-            className="block w-full py-3 rounded-xl text-sm font-bold tracking-wider uppercase text-center cursor-pointer transition-all hover:opacity-80"
+          <input
+            type="file"
+            accept=".pak,.zip,.obb,*/*"
+            onChange={handleFileChange}
             style={{
+              display: "block",
+              width: "100%",
+              padding: "12px 16px",
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "12px",
               color: "rgba(255,255,255,0.6)",
+              fontSize: "14px",
+              fontWeight: "bold",
+              letterSpacing: "0.05em",
+              cursor: "pointer",
             }}
             data-ocid="panel.upload_button"
-          >
-            📁 Select File (pak)
-            {selectedFile && (
-              <span
-                className="block text-xs font-mono mt-0.5 truncate"
-                style={{ color: "#00aaff" }}
-              >
-                {selectedFile.name}
-              </span>
-            )}
-            <input
-              type="file"
-              accept=".pak,.zip,.obb"
-              onChange={handleFileChange}
-              className="hidden"
-              data-ocid="panel.file_input"
-            />
-          </label>
+          />
+          {selectedFile && (
+            <p
+              className="mt-2 text-xs font-mono truncate px-1"
+              style={{ color: "#00aaff" }}
+            >
+              📁 {selectedFile.name}
+            </p>
+          )}
         </div>
 
         {/* Divider */}

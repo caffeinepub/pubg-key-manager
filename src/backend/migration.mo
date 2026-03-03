@@ -1,4 +1,6 @@
 import Map "mo:core/Map";
+import Int "mo:core/Int";
+import Text "mo:core/Text";
 
 module {
   type KeyRecord = {
@@ -10,15 +12,16 @@ module {
   };
 
   type OldActor = {
-    nextId : Nat;
+    adminPassword : Text;
     keyStore : Map.Map<Text, KeyRecord>;
   };
 
   type NewActor = {
     keyStore : Map.Map<Text, KeyRecord>;
+    adminPassword : Text;
   };
 
   public func run(old : OldActor) : NewActor {
-    { keyStore = old.keyStore };
+    { old with keyStore = old.keyStore };
   };
 };
