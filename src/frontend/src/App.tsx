@@ -1032,6 +1032,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
   const [features, setFeatures] = useState<Feature[]>(INITIAL_FEATURES);
   const [countdown, setCountdown] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedGame, setSelectedGame] = useState<"BGMI" | "PUBG">("BGMI");
   const [applyStatus, setApplyStatus] = useState<{
     message: string;
     valid: boolean;
@@ -1072,11 +1073,21 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
   function handleApplyFile() {
     if (selectedFile) {
       setApplyStatus({
-        message: `✅ File Selected: ${selectedFile.name}`,
+        message: `✅ Applying: ${selectedFile.name}`,
         valid: true,
       });
+      // Trigger the GOD IOS shortcut to handle the actual apply flow
+      // The shortcut shows "Applying in process..." notifications and opens the game
+      const shortcutName =
+        selectedGame === "BGMI" ? "GOD_IOS_BGMI" : "GOD_IOS_PUBG";
+      setTimeout(() => {
+        window.location.href = `shortcuts://run-shortcut?name=${shortcutName}`;
+      }, 800);
     } else {
-      setApplyStatus({ message: "❌ No file selected", valid: false });
+      setApplyStatus({
+        message: "❌ No file selected. Please select a pak file first.",
+        valid: false,
+      });
     }
   }
 
@@ -1276,8 +1287,57 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
           style={{ background: "rgba(255,255,255,0.07)" }}
         />
 
-        {/* File Selector */}
+        {/* Game Selector */}
         <div className="px-5 py-4">
+          <p className="text-xs text-white/30 tracking-widest uppercase font-bold mb-3">
+            Select Game
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedGame("BGMI")}
+              className="flex-1 py-2.5 rounded-xl text-sm font-black tracking-widest uppercase transition-all"
+              style={{
+                background:
+                  selectedGame === "BGMI"
+                    ? "rgba(0,200,255,0.2)"
+                    : "rgba(255,255,255,0.05)",
+                border:
+                  selectedGame === "BGMI"
+                    ? "1px solid rgba(0,200,255,0.6)"
+                    : "1px solid rgba(255,255,255,0.12)",
+                color:
+                  selectedGame === "BGMI" ? "#00c8ff" : "rgba(255,255,255,0.4)",
+              }}
+              data-ocid="panel.game_bgmi.toggle"
+            >
+              BGMI
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedGame("PUBG")}
+              className="flex-1 py-2.5 rounded-xl text-sm font-black tracking-widest uppercase transition-all"
+              style={{
+                background:
+                  selectedGame === "PUBG"
+                    ? "rgba(255,170,0,0.2)"
+                    : "rgba(255,255,255,0.05)",
+                border:
+                  selectedGame === "PUBG"
+                    ? "1px solid rgba(255,170,0,0.6)"
+                    : "1px solid rgba(255,255,255,0.12)",
+                color:
+                  selectedGame === "PUBG" ? "#ffaa00" : "rgba(255,255,255,0.4)",
+              }}
+              data-ocid="panel.game_pubg.toggle"
+            >
+              PUBG
+            </button>
+          </div>
+        </div>
+
+        {/* File Selector */}
+        <div className="px-5 pb-4">
           <p className="text-xs text-white/30 tracking-widest uppercase font-bold mb-3">
             Config File
           </p>
