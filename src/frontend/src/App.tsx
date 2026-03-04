@@ -1078,8 +1078,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
       });
       // Trigger the GOD IOS shortcut to handle the actual apply flow
       // The shortcut shows "Applying in process..." notifications and opens the game
-      const shortcutName =
-        selectedGame === "BGMI" ? "GOD_IOS_BGMI" : "GOD_IOS_PUBG";
+      const shortcutName = selectedGame === "BGMI" ? "ABC_BGMI" : "ABC_PUBG";
       setTimeout(() => {
         window.location.href = `shortcuts://run-shortcut?name=${shortcutName}`;
       }, 800);
@@ -1450,7 +1449,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
 
           {/* OPEN BGMI */}
           <a
-            href="shortcuts://run-shortcut?name=GOD_IOS_BGMI"
+            href="shortcuts://run-shortcut?name=ABC_BGMI"
             className="block w-full py-3 rounded-xl text-sm font-bold tracking-widest uppercase text-center transition-all hover:opacity-80 active:scale-[0.98]"
             style={{
               background: "rgba(0,200,255,0.08)",
@@ -1464,7 +1463,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
 
           {/* OPEN PUBG */}
           <a
-            href="shortcuts://run-shortcut?name=GOD_IOS_PUBG"
+            href="shortcuts://run-shortcut?name=ABC_PUBG"
             className="block w-full py-3 rounded-xl text-sm font-bold tracking-widest uppercase text-center transition-all hover:opacity-80 active:scale-[0.98]"
             style={{
               background: "rgba(255,106,0,0.08)",
