@@ -4,9 +4,9 @@ import Int "mo:core/Int";
 import Nat "mo:core/Nat";
 import Iter "mo:core/Iter";
 import Text "mo:core/Text";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   public type KeyRecord = {
     keyValue : Text;

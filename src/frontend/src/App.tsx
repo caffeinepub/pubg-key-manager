@@ -1032,6 +1032,11 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
   const [features, setFeatures] = useState<Feature[]>(INITIAL_FEATURES);
   const [countdown, setCountdown] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [applyStatus, setApplyStatus] = useState<{
+    message: string;
+    valid: boolean;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Live countdown timer
   useEffect(() => {
     if (isAdmin || expiryTimestamp === null) {
@@ -1059,7 +1064,20 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSelectedFile(e.target.files?.[0] ?? null);
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    setApplyStatus(null);
+  }
+
+  function handleApplyFile() {
+    if (selectedFile) {
+      setApplyStatus({
+        message: `✅ File Selected: ${selectedFile.name}`,
+        valid: true,
+      });
+    } else {
+      setApplyStatus({ message: "❌ No file selected", valid: false });
+    }
   }
 
   const isExpired =
@@ -1265,6 +1283,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
           </p>
 
           <input
+            ref={fileInputRef}
             type="file"
             accept=".pak,.zip,.obb,*/*"
             onChange={handleFileChange}
@@ -1308,6 +1327,7 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
           {/* APPLY FILE */}
           <button
             type="button"
+            onClick={handleApplyFile}
             className="w-full py-3.5 rounded-xl text-sm font-black tracking-widest uppercase transition-all hover:opacity-90 active:scale-[0.98]"
             style={{
               background: "linear-gradient(135deg, #00c96a 0%, #00aaff 100%)",
@@ -1319,6 +1339,22 @@ function PanelView({ isAdmin, expiryTimestamp, onLogout }: PanelViewProps) {
           >
             ✔ APPLY FILE
           </button>
+
+          {/* Apply status message */}
+          <AnimatePresence>
+            {applyStatus && (
+              <motion.p
+                className="text-sm font-medium text-center px-1"
+                style={{ color: applyStatus.valid ? "#00ff88" : "#ff4444" }}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                data-ocid="panel.apply_status"
+              >
+                {applyStatus.message}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           {/* ADD BGMI SHORTCUT */}
           <a
