@@ -3,10 +3,11 @@ import Time "mo:core/Time";
 import Int "mo:core/Int";
 import Nat "mo:core/Nat";
 import Iter "mo:core/Iter";
+import Array "mo:core/Array";
 import Text "mo:core/Text";
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   public type KeyRecord = {
     keyValue : Text;
@@ -43,6 +44,22 @@ actor {
     keyStore := tempStore;
   };
 
+  func padLeft(number : Nat, size : Nat) : Text {
+    let numText = number.toText();
+    let actualSize = numText.size();
+    var padding = "";
+    var i = 0;
+    while (i < size - actualSize) {
+      padding := padding # "0";
+      i += 1;
+    };
+    padding # numText;
+  };
+
+  func generateRandomNumber() : Nat {
+    Int.abs(Time.now()) % 1_000_000;
+  };
+
   public shared ({ caller }) func generateKey(adminKey : Text, durationDays : Nat) : async Text {
     clearExpiredKeys();
 
@@ -50,14 +67,14 @@ actor {
       return "ERROR:UNAUTHORIZED";
     };
 
-    let keyNumber = generateRandomNumber() % 1_000_000;
-    let keyValue = "GOD-" # durationDays.toText() # "DAY-" # natToPaddedText(keyNumber, 6);
+    let keyNumber = generateRandomNumber();
+    let keyValue = "GOD-" # durationDays.toText() # "DAY-" # padLeft(keyNumber, 6);
 
     let now = getCurrentTime();
     let newKey : KeyRecord = {
       keyValue;
       durationDays;
-      expiryTimestamp = now + durationDays.toInt() * 86_400_000; // 24h = 86_400_000
+      expiryTimestamp = now + Int.fromNat(durationDays) * 86_400_000;
       boundDeviceId = null;
       createdAt = now;
     };
@@ -95,42 +112,20 @@ actor {
       case (?record) {
         let now = getCurrentTime();
         if (record.expiryTimestamp < now) {
-          return {
-            valid = false;
-            message = "Key expired";
-            isAdmin = false;
-            expiryTimestamp = null;
-          };
+          return { valid = false; message = "Key expired"; isAdmin = false; expiryTimestamp = null };
         };
 
         switch (record.boundDeviceId) {
           case (null) {
-            let updatedRecord = {
-              record with boundDeviceId = ?deviceId;
-            };
+            let updatedRecord = { record with boundDeviceId = ?deviceId };
             keyStore.add(keyValue, updatedRecord);
-            {
-              valid = true;
-              message = "Key bound to device";
-              isAdmin = false;
-              expiryTimestamp = ?record.expiryTimestamp;
-            };
+            { valid = true; message = "Key bound to device"; isAdmin = false; expiryTimestamp = ?record.expiryTimestamp };
           };
           case (?boundId) {
             if (boundId == deviceId) {
-              {
-                valid = true;
-                message = "Key validated";
-                isAdmin = false;
-                expiryTimestamp = ?record.expiryTimestamp;
-              };
+              { valid = true; message = "Key validated"; isAdmin = false; expiryTimestamp = ?record.expiryTimestamp };
             } else {
-              {
-                valid = false;
-                message = "Key locked to another device";
-                isAdmin = false;
-                expiryTimestamp = null;
-              };
+              { valid = false; message = "Key locked to another device"; isAdmin = false; expiryTimestamp = null };
             };
           };
         };
@@ -160,19 +155,5 @@ actor {
 
     keyStore := Map.empty<Text, KeyRecord>();
     true;
-  };
-
-  func generateRandomNumber() : Nat {
-    Int.abs(Time.now()) % 1_000_000;
-  };
-
-  func natToPaddedText(num : Nat, size : Nat) : Text {
-    let numText = num.toText();
-    let actualSize = numText.size();
-    if (actualSize >= size) {
-      return numText;
-    };
-    let padding = Array.repeat('0', size - actualSize);
-    Text.fromArray(padding) # numText;
   };
 };
